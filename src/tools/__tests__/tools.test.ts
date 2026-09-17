@@ -22,14 +22,43 @@ import {
   handleSearchVacancies,
   handleGetVacancy,
   handleGetSimilarVacancies,
+  handleGetRelatedVacancies,
+  handleGetVacancyStats,
+  handleGetVacancyVisitors,
+  handleGetVacancyConditions,
   getVacancySchema,
 } from "../vacancies.js";
 import {
   handleSearchEmployers,
   handleGetEmployer,
   handleGetEmployerVacancies,
+  handleListEmployerManagers,
+  handleGetEmployerManager,
+  handleListArchivedVacancies,
+  handleListHiddenVacancies,
+  handleGetMessageTemplate,
+  handleListMailTemplates,
+  handleGetEmployerVacancyAreas,
+  handleGetEmployerDepartments,
+  handleListEmployerAddresses,
+  handleGetManagerResumeLimits,
+  handleGetManagerNegotiationsStatistics,
 } from "../employers.js";
-import { handleSearchResumes, handleGetResume } from "../resumes.js";
+import {
+  handleSearchResumes,
+  handleGetResume,
+  handleGetResumeNegotiationsHistory,
+  handleListSavedResumeSearches,
+  handleGetSavedResumeSearch,
+} from "../resumes.js";
+import {
+  handleListApplicationCollections,
+  handleListApplications,
+  handleGetApplication,
+  handleGetApplicationMessages,
+  handleGetNegotiationsStatistics,
+  handleGetPreferredNegotiationsOrder,
+} from "../negotiations.js";
 import {
   handleGetAreas,
   handleGetAreasSubtree,
@@ -39,10 +68,19 @@ import {
   handleGetDictionaries,
   handleValidateToken,
   handleSuggestPositions,
+  handleSuggestProfessionalRoles,
   handleSuggestCompanies,
   handleSuggestAreas,
+  handleSuggestVacancySearchKeyword,
+  handleSuggestResumeSearchKeyword,
+  handleSuggestSkillSet,
+  handleGetCountries,
+  handleGetLanguages,
+  handleGetSkills,
+  handleGetDistricts,
 } from "../references.js";
 import { handleGetSalaryStatistics } from "../salary.js";
+import { TOOL_COUNT } from "../../index.js";
 
 const mockHhGet = vi.mocked(hhGet);
 
@@ -277,9 +315,16 @@ describe("references", () => {
     expect(mockHhGet).toHaveBeenCalledWith("/dictionaries");
   });
 
-  it("suggest_positions formats matches", async () => {
+  it("suggest_positions hits /suggests/positions", async () => {
+    mockHhGet.mockResolvedValueOnce({ items: [{ text: "Python developer" }] });
+    const result = await handleSuggestPositions({ text: "python" });
+    expect(lastUrl()).toContain("/suggests/positions");
+    expect(result).toContain("Python developer");
+  });
+
+  it("suggest_professional_roles hits /suggests/professional_roles", async () => {
     mockHhGet.mockResolvedValueOnce({ items: [{ id: "96", text: "Программист" }] });
-    const result = await handleSuggestPositions({ text: "прог" });
+    const result = await handleSuggestProfessionalRoles({ text: "прог" });
     expect(lastUrl()).toContain("/suggests/professional_roles");
     expect(result).toContain("Программист (id=96)");
   });
@@ -291,6 +336,257 @@ describe("references", () => {
     mockHhGet.mockResolvedValueOnce({ items: [] });
     await handleSuggestAreas({ text: "mos" });
     expect(lastUrl()).toContain("/suggests/areas");
+  });
+
+  it("keyword and skill suggests hit the right endpoints", async () => {
+    mockHhGet.mockResolvedValueOnce({ items: [] });
+    await handleSuggestVacancySearchKeyword({ text: "py" });
+    expect(lastUrl()).toContain("/suggests/vacancy_search_keyword");
+    mockHhGet.mockResolvedValueOnce({ items: [] });
+    await handleSuggestResumeSearchKeyword({ text: "java" });
+    expect(lastUrl()).toContain("/suggests/resume_search_keyword");
+    mockHhGet.mockResolvedValueOnce({ items: [] });
+    await handleSuggestSkillSet({ text: "sql" });
+    expect(lastUrl()).toContain("/suggests/skill_set");
+  });
+
+  it("get_countries / get_languages / get_skills / get_districts", async () => {
+    mockHhGet.mockResolvedValueOnce([{ id: "113", name: "Россия" }]);
+    expect(await handleGetCountries()).toContain("113 — Россия");
+    expect(mockHhGet).toHaveBeenCalledWith("/areas/countries");
+
+    mockHhGet.mockResolvedValueOnce([{ id: "rus", name: "Русский" }]);
+    expect(await handleGetLanguages()).toContain("Русский");
+    expect(mockHhGet).toHaveBeenCalledWith("/languages");
+
+    mockHhGet.mockResolvedValueOnce([{ id: "1", name: "Python" }]);
+    expect(await handleGetSkills()).toContain("Python");
+    expect(mockHhGet).toHaveBeenCalledWith("/skills");
+
+    mockHhGet.mockResolvedValueOnce([{ id: "1", name: "ЦАО" }]);
+    await handleGetDistricts({ area_id: "1" });
+    expect(lastUrl()).toContain("/districts?");
+    expect(lastUrl()).toContain("area=1");
+  });
+});
+
+describe("ATS negotiations (token-gated)", () => {
+  it("list_application_collections fails without token", async () => {
+    await expect(handleListApplicationCollections({ vacancy_id: "1" })).rejects.toThrow(
+      /HH_ACCESS_TOKEN/,
+    );
+  });
+
+  it("list_application_collections builds query and formats", async () => {
+    process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({
+      collections: [{ id: "response", name: "Неразобранные", description: "inbox" }],
+      employer_states: [{ id: "response", name: "Отклик" }],
+    });
+    const result = await handleListApplicationCollections({ vacancy_id: "123" });
+    expect(lastUrl()).toBe("/negotiations?vacancy_id=123");
+    expect(result).toContain("response");
+    expect(result).toContain("Неразобранные");
+  });
+
+  it("list_applications hits collection path with order_by", async () => {
+    process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({
+      items: [
+        {
+          id: "9",
+          employer_state: { id: "response", name: "Отклик" },
+          resume: { id: "abc", title: "Backend", first_name: "Ivan" },
+        },
+      ],
+      found: 1,
+      pages: 1,
+      page: 0,
+      per_page: 20,
+    });
+    const result = await handleListApplications({
+      collection: "response",
+      vacancy_id: "123",
+      page: 0,
+      per_page: 20,
+      order_by: "created_at",
+    });
+    expect(lastUrl()).toContain("/negotiations/response?");
+    expect(lastUrl()).toContain("vacancy_id=123");
+    expect(lastUrl()).toContain("order_by=created_at");
+    expect(result).toContain("Backend");
+    expect(result).toContain("resume_id=abc");
+  });
+
+  it("get_application and messages", async () => {
+    process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({
+      id: "9",
+      employer_state: { name: "Отклик" },
+      resume: { id: "abc", title: "Dev" },
+    });
+    const app = await handleGetApplication({ id: "9" });
+    expect(mockHhGet).toHaveBeenCalledWith("/negotiations/9");
+    expect(app).toContain("Отклик");
+
+    mockHhGet.mockResolvedValueOnce({
+      items: [{ text: "Hello", author: { participant_type: "employer" }, created_at: "2026-01-01" }],
+    });
+    const msgs = await handleGetApplicationMessages({ nid: "9" });
+    expect(mockHhGet).toHaveBeenCalledWith("/negotiations/9/messages");
+    expect(msgs).toContain("Hello");
+  });
+
+  it("get_negotiations_statistics and preferred order", async () => {
+    process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({ responses: 10, invitations: 2 });
+    const stats = await handleGetNegotiationsStatistics({ employer_id: "1740" });
+    expect(mockHhGet).toHaveBeenCalledWith("/employers/1740/negotiations_statistics");
+    expect(stats).toContain("responses");
+
+    mockHhGet.mockResolvedValueOnce({ order_by: "relevance" });
+    const order = await handleGetPreferredNegotiationsOrder({ vacancy_id: "123" });
+    expect(mockHhGet).toHaveBeenCalledWith("/vacancies/123/preferred_negotiations_order");
+    expect(order).toContain("relevance");
+  });
+
+  it("returns raw JSON when raw:true", async () => {
+    process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({ collections: [] });
+    const result = await handleListApplicationCollections({ vacancy_id: "1", raw: true });
+    expect(JSON.parse(result).collections).toEqual([]);
+  });
+});
+
+describe("employer ATS tools", () => {
+  it("managers and limits require token and hit paths", async () => {
+    await expect(handleListEmployerManagers({ employer_id: "1", page: 0, per_page: 20 })).rejects.toThrow(
+      /HH_ACCESS_TOKEN/,
+    );
+    process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({
+      items: [{ id: "5", full_name: "HR", email: "hr@x.io" }],
+      found: 1,
+    });
+    const list = await handleListEmployerManagers({ employer_id: "1740", page: 0, per_page: 20 });
+    expect(lastUrl()).toContain("/employers/1740/managers?");
+    expect(list).toContain("HR");
+
+    mockHhGet.mockResolvedValueOnce({ id: "5", full_name: "HR" });
+    await handleGetEmployerManager({ employer_id: "1740", manager_id: "5", raw: true });
+    expect(mockHhGet).toHaveBeenCalledWith("/employers/1740/managers/5");
+
+    mockHhGet.mockResolvedValueOnce({ left: 10 });
+    await handleGetManagerResumeLimits({ employer_id: "1740", manager_id: "5", raw: true });
+    expect(lastUrl()).toContain("/limits/resume");
+
+    mockHhGet.mockResolvedValueOnce({ responses: 1 });
+    await handleGetManagerNegotiationsStatistics({
+      employer_id: "1740",
+      manager_id: "5",
+      raw: true,
+    });
+    expect(lastUrl()).toContain("/negotiations_statistics");
+  });
+
+  it("archived/hidden vacancies and templates/addresses", async () => {
+    process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({ items: [], found: 0, pages: 0, per_page: 20, page: 0 });
+    await handleListArchivedVacancies({ employer_id: "1740", page: 0, per_page: 20 });
+    expect(lastUrl()).toContain("/vacancies/archived");
+
+    mockHhGet.mockResolvedValueOnce({ items: [], found: 0, pages: 0, per_page: 20, page: 0 });
+    await handleListHiddenVacancies({ employer_id: "1740", page: 0, per_page: 20 });
+    expect(lastUrl()).toContain("/vacancies/hidden");
+
+    mockHhGet.mockResolvedValueOnce({ id: "invite", name: "Invite", text: "Hi" });
+    const tpl = await handleGetMessageTemplate({ template: "invite", topic_id: "9" });
+    expect(lastUrl()).toContain("/message_templates/invite?");
+    expect(lastUrl()).toContain("topic_id=9");
+    expect(tpl).toContain("Hi");
+
+    mockHhGet.mockResolvedValueOnce({ items: [{ id: "1", name: "Offer" }] });
+    const mails = await handleListMailTemplates({ employer_id: "1740" });
+    expect(mockHhGet).toHaveBeenCalledWith("/employers/1740/mail_templates");
+    expect(mails).toContain("Offer");
+
+    mockHhGet.mockResolvedValueOnce([{ id: "1", name: "Москва" }]);
+    await handleGetEmployerVacancyAreas({ employer_id: "1740" });
+    expect(mockHhGet).toHaveBeenCalledWith("/employers/1740/vacancy_areas/active");
+
+    mockHhGet.mockResolvedValueOnce([{ id: "d1", name: "IT" }]);
+    await handleGetEmployerDepartments({ employer_id: "1740" });
+    expect(mockHhGet).toHaveBeenCalledWith("/employers/1740/departments");
+
+    mockHhGet.mockResolvedValueOnce({ items: [{ id: "a1", city: "Москва", street: "Тверская" }] });
+    const addrs = await handleListEmployerAddresses({ employer_id: "1740" });
+    expect(mockHhGet).toHaveBeenCalledWith("/employers/1740/addresses");
+    expect(addrs).toContain("Тверская");
+  });
+});
+
+describe("vacancy extras + saved searches", () => {
+  it("get_related_vacancies is public", async () => {
+    mockHhGet.mockResolvedValueOnce({ items: [], found: 0, pages: 0, per_page: 10, page: 0 });
+    await handleGetRelatedVacancies({ vacancy_id: "456", per_page: 10, page: 0 });
+    expect(lastUrl()).toContain("/vacancies/456/related_vacancies");
+  });
+
+  it("vacancy stats/visitors/conditions require token", async () => {
+    await expect(handleGetVacancyStats({ vacancy_id: "1" })).rejects.toThrow(/HH_ACCESS_TOKEN/);
+    process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({ views: { total: 100 }, responses: { total: 5 } });
+    const stats = await handleGetVacancyStats({ vacancy_id: "1" });
+    expect(mockHhGet).toHaveBeenCalledWith("/vacancies/1/stats");
+    expect(stats).toContain("views");
+
+    mockHhGet.mockResolvedValueOnce({
+      items: [{ resume: { id: "r1", title: "Dev" }, last_visit: "2026-01-01" }],
+      found: 1,
+    });
+    const visitors = await handleGetVacancyVisitors({ vacancy_id: "1", page: 0, per_page: 20 });
+    expect(lastUrl()).toContain("/vacancies/1/visitors?");
+    expect(visitors).toContain("Dev");
+
+    mockHhGet.mockResolvedValueOnce([{ id: "c1", name: "Условие" }]);
+    const cond = await handleGetVacancyConditions();
+    expect(mockHhGet).toHaveBeenCalledWith("/vacancy_conditions");
+    expect(cond).toContain("Условие");
+  });
+
+  it("saved resume searches require token", async () => {
+    await expect(
+      handleListSavedResumeSearches({ page: 0, per_page: 20 }),
+    ).rejects.toThrow(/HH_ACCESS_TOKEN/);
+    process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({
+      items: [{ id: "7", name: "Python", items: { count: 10 }, new_items: { count: 2 } }],
+      found: 1,
+    });
+    const list = await handleListSavedResumeSearches({ page: 0, per_page: 20 });
+    expect(lastUrl()).toContain("/saved_searches/resumes?");
+    expect(list).toContain("Python");
+
+    mockHhGet.mockResolvedValueOnce({ id: "7", name: "Python" });
+    const one = await handleGetSavedResumeSearch({ id: "7", raw: true });
+    expect(mockHhGet).toHaveBeenCalledWith("/saved_searches/resumes/7");
+    expect(JSON.parse(one).name).toBe("Python");
+  });
+
+  it("get_resume_negotiations_history", async () => {
+    process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({
+      negotiations: [{ employer_state: { name: "Отклик" }, created_at: "2026-01-01" }],
+    });
+    const result = await handleGetResumeNegotiationsHistory({ resume_id: "abc123" });
+    expect(mockHhGet).toHaveBeenCalledWith("/resumes/abc123/negotiations_history");
+    expect(result).toContain("Отклик");
+  });
+});
+
+describe("tool registry", () => {
+  it("exposes 51 tools", () => {
+    expect(TOOL_COUNT).toBe(51);
   });
 });
 
