@@ -169,19 +169,40 @@ function formatSuggests(result: unknown): string {
   return items.map((i) => `${i.text}${i.id != null ? ` (id=${i.id})` : ""}`).join("\n");
 }
 
+async function suggestGet(
+  path: string,
+  text: string,
+  raw?: boolean,
+): Promise<string> {
+  const query = new URLSearchParams();
+  query.set("text", text);
+  const result = await hhGet(`${path}?${query.toString()}`);
+  if (raw) return JSON.stringify(result, null, 2);
+  return formatSuggests(result);
+}
+
 export const suggestPositionsSchema = z.object({
-  text: z.string().describe("Partial job title to autocomplete"),
+  text: z.string().describe("Partial job title / position name to autocomplete"),
   raw: rawFlag,
 });
 
+/** Autocomplete free-form position titles via /suggests/positions. */
 export async function handleSuggestPositions(
   params: z.infer<typeof suggestPositionsSchema>,
 ): Promise<string> {
-  const query = new URLSearchParams();
-  query.set("text", params.text);
-  const result = await hhGet(`/suggests/professional_roles?${query.toString()}`);
-  if (params.raw) return JSON.stringify(result, null, 2);
-  return formatSuggests(result);
+  return suggestGet("/suggests/positions", params.text, params.raw);
+}
+
+export const suggestProfessionalRolesSchema = z.object({
+  text: z.string().describe("Partial professional role name to autocomplete"),
+  raw: rawFlag,
+});
+
+/** Autocomplete professional role IDs via /suggests/professional_roles. */
+export async function handleSuggestProfessionalRoles(
+  params: z.infer<typeof suggestProfessionalRolesSchema>,
+): Promise<string> {
+  return suggestGet("/suggests/professional_roles", params.text, params.raw);
 }
 
 export const suggestCompaniesSchema = z.object({
@@ -192,11 +213,7 @@ export const suggestCompaniesSchema = z.object({
 export async function handleSuggestCompanies(
   params: z.infer<typeof suggestCompaniesSchema>,
 ): Promise<string> {
-  const query = new URLSearchParams();
-  query.set("text", params.text);
-  const result = await hhGet(`/suggests/companies?${query.toString()}`);
-  if (params.raw) return JSON.stringify(result, null, 2);
-  return formatSuggests(result);
+  return suggestGet("/suggests/companies", params.text, params.raw);
 }
 
 export const suggestAreasSchema = z.object({
@@ -207,9 +224,100 @@ export const suggestAreasSchema = z.object({
 export async function handleSuggestAreas(
   params: z.infer<typeof suggestAreasSchema>,
 ): Promise<string> {
-  const query = new URLSearchParams();
-  query.set("text", params.text);
-  const result = await hhGet(`/suggests/areas?${query.toString()}`);
+  return suggestGet("/suggests/areas", params.text, params.raw);
+}
+
+export const suggestVacancySearchKeywordSchema = z.object({
+  text: z.string().describe("Partial vacancy-search keyword"),
+  raw: rawFlag,
+});
+
+export async function handleSuggestVacancySearchKeyword(
+  params: z.infer<typeof suggestVacancySearchKeywordSchema>,
+): Promise<string> {
+  return suggestGet("/suggests/vacancy_search_keyword", params.text, params.raw);
+}
+
+export const suggestResumeSearchKeywordSchema = z.object({
+  text: z.string().describe("Partial resume-search keyword"),
+  raw: rawFlag,
+});
+
+export async function handleSuggestResumeSearchKeyword(
+  params: z.infer<typeof suggestResumeSearchKeywordSchema>,
+): Promise<string> {
+  return suggestGet("/suggests/resume_search_keyword", params.text, params.raw);
+}
+
+export const suggestSkillSetSchema = z.object({
+  text: z.string().describe("Partial skill name to autocomplete"),
+  raw: rawFlag,
+});
+
+export async function handleSuggestSkillSet(
+  params: z.infer<typeof suggestSkillSetSchema>,
+): Promise<string> {
+  return suggestGet("/suggests/skill_set", params.text, params.raw);
+}
+
+// --- Extra public references ---
+
+function formatIdNameList(result: unknown): string {
+  const items = Array.isArray(result)
+    ? (result as { id?: string; name?: string; text?: string }[])
+    : ((result as { items?: { id?: string; name?: string; text?: string }[] }).items ?? []);
+  if (!items.length) return "(пусто)";
+  return items
+    .map((i) => `${i.id ?? "—"} — ${i.name ?? i.text ?? "—"}`)
+    .join("\n");
+}
+
+export const getCountriesSchema = rawOnly;
+
+export async function handleGetCountries(
+  params: z.infer<typeof getCountriesSchema> = {},
+): Promise<string> {
+  const result = await hhGet("/areas/countries");
   if (params.raw) return JSON.stringify(result, null, 2);
-  return formatSuggests(result);
+  return formatIdNameList(result);
+}
+
+export const getLanguagesSchema = rawOnly;
+
+export async function handleGetLanguages(
+  params: z.infer<typeof getLanguagesSchema> = {},
+): Promise<string> {
+  const result = await hhGet("/languages");
+  if (params.raw) return JSON.stringify(result, null, 2);
+  return formatIdNameList(result);
+}
+
+export const getSkillsSchema = rawOnly;
+
+export async function handleGetSkills(
+  params: z.infer<typeof getSkillsSchema> = {},
+): Promise<string> {
+  const result = await hhGet("/skills");
+  if (params.raw) return JSON.stringify(result, null, 2);
+  return formatIdNameList(result);
+}
+
+export const getDistrictsSchema = z.object({
+  area_id: z
+    .string()
+    .regex(/^\d+$/, "area_id must be a numeric hh.ru id")
+    .optional()
+    .describe("Optional city/area id to filter districts"),
+  raw: rawFlag,
+});
+
+export async function handleGetDistricts(
+  params: z.infer<typeof getDistrictsSchema> = {},
+): Promise<string> {
+  const query = new URLSearchParams();
+  if (params.area_id) query.set("area", params.area_id);
+  const qs = query.toString();
+  const result = await hhGet(`/districts${qs ? `?${qs}` : ""}`);
+  if (params.raw) return JSON.stringify(result, null, 2);
+  return formatIdNameList(result);
 }

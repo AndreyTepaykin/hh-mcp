@@ -1,7 +1,19 @@
 import { z } from "zod";
 import { hhGet } from "../client.js";
-import type { Resume, SearchResult } from "../types.js";
-import { formatResumeSearch, formatResume } from "../format.js";
+import { requireToken, RESUME_ACCESS_NOTE } from "../auth.js";
+import type {
+  Resume,
+  SearchResult,
+  NegotiationsHistory,
+  SavedResumeSearch,
+} from "../types.js";
+import {
+  formatResumeSearch,
+  formatResume,
+  formatNegotiationsHistory,
+  formatSavedResumeSearchList,
+  formatSavedResumeSearch,
+} from "../format.js";
 
 const rawFlag = z
   .boolean()
@@ -13,22 +25,13 @@ const resumeId = z
   .string()
   .regex(/^[a-zA-Z0-9_-]+$/, "resume_id must be an hh.ru resume id");
 
-const RESUME_ACCESS_NOTE =
-  "Resume search requires an EMPLOYER OAuth token (HH_ACCESS_TOKEN) AND a paid hh.ru resume-database subscription. Applicant/anonymous tokens get 403. Set HH_ACCESS_TOKEN and use validate_token to confirm your token's role.";
-
-function requireToken(): void {
-  if (!process.env.HH_ACCESS_TOKEN) {
-    throw new Error(`HH_ACCESS_TOKEN is not set. ${RESUME_ACCESS_NOTE}`);
-  }
-}
-
 export const searchResumesSchema = z.object({
   text: z.string().optional().describe("Search keywords (skills, job title, etc.)"),
   area: z.number().optional().describe("Region code (1=Moscow, 2=Saint Petersburg)"),
   professional_role: z
     .number()
     .optional()
-    .describe("Professional role ID. Use get_professional_roles to find IDs."),
+    .describe("Professional role ID. Use get_professional_roles or suggest_professional_roles to find IDs."),
   salary: z.number().optional().describe("Expected salary amount"),
   experience: z
     .enum(["noExperience", "between1And3", "between3And6", "moreThan6"])
@@ -42,7 +45,7 @@ export const searchResumesSchema = z.object({
 export async function handleSearchResumes(
   params: z.infer<typeof searchResumesSchema>,
 ): Promise<string> {
-  requireToken();
+  requireToken(RESUME_ACCESS_NOTE);
   const query = new URLSearchParams();
   if (params.text) query.set("text", params.text);
   if (params.area != null) query.set("area", String(params.area));
@@ -66,8 +69,59 @@ export const getResumeSchema = z.object({
 export async function handleGetResume(
   params: z.infer<typeof getResumeSchema>,
 ): Promise<string> {
-  requireToken();
+  requireToken(RESUME_ACCESS_NOTE);
   const result = await hhGet(`/resumes/${encodeURIComponent(params.resume_id)}`);
   if (params.raw) return JSON.stringify(result, null, 2);
   return formatResume(result as Resume);
+}
+
+export const getResumeNegotiationsHistorySchema = z.object({
+  resume_id: resumeId.describe("Resume ID"),
+  raw: rawFlag,
+});
+
+export async function handleGetResumeNegotiationsHistory(
+  params: z.infer<typeof getResumeNegotiationsHistorySchema>,
+): Promise<string> {
+  requireToken();
+  const result = await hhGet(
+    `/resumes/${encodeURIComponent(params.resume_id)}/negotiations_history`,
+  );
+  if (params.raw) return JSON.stringify(result, null, 2);
+  return formatNegotiationsHistory(result as NegotiationsHistory);
+}
+
+export const listSavedResumeSearchesSchema = z.object({
+  page: z.number().int().min(0).default(0).describe("Page number (0-based)"),
+  per_page: z.number().int().min(1).max(100).default(20).describe("Results per page"),
+  raw: rawFlag,
+});
+
+export async function handleListSavedResumeSearches(
+  params: z.infer<typeof listSavedResumeSearchesSchema>,
+): Promise<string> {
+  requireToken();
+  const query = new URLSearchParams();
+  query.set("page", String(params.page));
+  query.set("per_page", String(params.per_page));
+  const result = await hhGet(`/saved_searches/resumes?${query.toString()}`);
+  if (params.raw) return JSON.stringify(result, null, 2);
+  return formatSavedResumeSearchList(result as SearchResult<SavedResumeSearch>);
+}
+
+export const getSavedResumeSearchSchema = z.object({
+  id: z
+    .string()
+    .regex(/^\d+$/, "id must be a numeric saved-search id")
+    .describe("Saved resume search ID"),
+  raw: rawFlag,
+});
+
+export async function handleGetSavedResumeSearch(
+  params: z.infer<typeof getSavedResumeSearchSchema>,
+): Promise<string> {
+  requireToken();
+  const result = await hhGet(`/saved_searches/resumes/${encodeURIComponent(params.id)}`);
+  if (params.raw) return JSON.stringify(result, null, 2);
+  return formatSavedResumeSearch(result as SavedResumeSearch);
 }

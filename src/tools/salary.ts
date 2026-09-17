@@ -12,7 +12,7 @@ import { formatSalary } from "../format.js";
 export const getSalaryStatisticsSchema = z.object({
   professional_role_id: z
     .number()
-    .describe("Professional role ID. Use get_professional_roles or suggest_positions to find IDs."),
+    .describe("Professional role ID. Use get_professional_roles or suggest_professional_roles to find IDs."),
   area_id: z
     .number()
     .optional()

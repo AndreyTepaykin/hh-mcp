@@ -13,6 +13,14 @@ import {
   handleGetVacancy,
   getSimilarVacanciesSchema,
   handleGetSimilarVacancies,
+  getRelatedVacanciesSchema,
+  handleGetRelatedVacancies,
+  getVacancyStatsSchema,
+  handleGetVacancyStats,
+  getVacancyVisitorsSchema,
+  handleGetVacancyVisitors,
+  getVacancyConditionsSchema,
+  handleGetVacancyConditions,
 } from "./tools/vacancies.js";
 import {
   searchEmployersSchema,
@@ -21,13 +29,55 @@ import {
   handleGetEmployer,
   getEmployerVacanciesSchema,
   handleGetEmployerVacancies,
+  listEmployerManagersSchema,
+  handleListEmployerManagers,
+  getEmployerManagerSchema,
+  handleGetEmployerManager,
+  getManagerResumeLimitsSchema,
+  handleGetManagerResumeLimits,
+  getManagerNegotiationsStatisticsSchema,
+  handleGetManagerNegotiationsStatistics,
+  listArchivedVacanciesSchema,
+  handleListArchivedVacancies,
+  listHiddenVacanciesSchema,
+  handleListHiddenVacancies,
+  getMessageTemplateSchema,
+  handleGetMessageTemplate,
+  listMailTemplatesSchema,
+  handleListMailTemplates,
+  getEmployerVacancyAreasSchema,
+  handleGetEmployerVacancyAreas,
+  getEmployerDepartmentsSchema,
+  handleGetEmployerDepartments,
+  listEmployerAddressesSchema,
+  handleListEmployerAddresses,
 } from "./tools/employers.js";
 import {
   searchResumesSchema,
   handleSearchResumes,
   getResumeSchema,
   handleGetResume,
+  getResumeNegotiationsHistorySchema,
+  handleGetResumeNegotiationsHistory,
+  listSavedResumeSearchesSchema,
+  handleListSavedResumeSearches,
+  getSavedResumeSearchSchema,
+  handleGetSavedResumeSearch,
 } from "./tools/resumes.js";
+import {
+  listApplicationCollectionsSchema,
+  handleListApplicationCollections,
+  listApplicationsSchema,
+  handleListApplications,
+  getApplicationSchema,
+  handleGetApplication,
+  getApplicationMessagesSchema,
+  handleGetApplicationMessages,
+  getNegotiationsStatisticsSchema,
+  handleGetNegotiationsStatistics,
+  getPreferredNegotiationsOrderSchema,
+  handleGetPreferredNegotiationsOrder,
+} from "./tools/negotiations.js";
 import {
   getAreasSchema,
   handleGetAreas,
@@ -44,10 +94,26 @@ import {
   handleValidateToken,
   suggestPositionsSchema,
   handleSuggestPositions,
+  suggestProfessionalRolesSchema,
+  handleSuggestProfessionalRoles,
   suggestCompaniesSchema,
   handleSuggestCompanies,
   suggestAreasSchema,
   handleSuggestAreas,
+  suggestVacancySearchKeywordSchema,
+  handleSuggestVacancySearchKeyword,
+  suggestResumeSearchKeywordSchema,
+  handleSuggestResumeSearchKeyword,
+  suggestSkillSetSchema,
+  handleSuggestSkillSet,
+  getCountriesSchema,
+  handleGetCountries,
+  getLanguagesSchema,
+  handleGetLanguages,
+  getSkillsSchema,
+  handleGetSkills,
+  getDistrictsSchema,
+  handleGetDistricts,
 } from "./tools/references.js";
 import {
   getSalaryStatisticsSchema,
@@ -116,6 +182,34 @@ const TOOLS: ToolDef[] = [
     schema: getSimilarVacanciesSchema.shape,
     handler: handleGetSimilarVacancies,
   },
+  {
+    name: "get_related_vacancies",
+    description:
+      "Find vacancies related to a given one (hh.ru related_vacancies endpoint). Public, no token.",
+    schema: getRelatedVacanciesSchema.shape,
+    handler: handleGetRelatedVacancies,
+  },
+  {
+    name: "get_vacancy_stats",
+    description:
+      "Get employer-facing vacancy statistics (views/responses/invitations). Requires HH_ACCESS_TOKEN.",
+    schema: getVacancyStatsSchema.shape,
+    handler: handleGetVacancyStats,
+  },
+  {
+    name: "get_vacancy_visitors",
+    description:
+      "List visitors who viewed a vacancy. Requires HH_ACCESS_TOKEN.",
+    schema: getVacancyVisitorsSchema.shape,
+    handler: handleGetVacancyVisitors,
+  },
+  {
+    name: "get_vacancy_conditions",
+    description:
+      "Get vacancy publication conditions / constraints for the current employer. Requires HH_ACCESS_TOKEN.",
+    schema: getVacancyConditionsSchema.shape,
+    handler: handleGetVacancyConditions,
+  },
   // --- Resumes (require an employer token + paid resume-database access) ---
   {
     name: "search_resumes",
@@ -130,6 +224,70 @@ const TOOLS: ToolDef[] = [
       "Get full resume details: experience, education, skills, contacts. Requires an EMPLOYER OAuth token + paid resume-database access.",
     schema: getResumeSchema.shape,
     handler: handleGetResume,
+  },
+  {
+    name: "get_resume_negotiations_history",
+    description:
+      "Get negotiation history for a resume (employer view). Requires HH_ACCESS_TOKEN.",
+    schema: getResumeNegotiationsHistorySchema.shape,
+    handler: handleGetResumeNegotiationsHistory,
+  },
+  {
+    name: "list_saved_resume_searches",
+    description:
+      "List saved resume searches for the current employer account. Requires HH_ACCESS_TOKEN.",
+    schema: listSavedResumeSearchesSchema.shape,
+    handler: handleListSavedResumeSearches,
+  },
+  {
+    name: "get_saved_resume_search",
+    description:
+      "Get a saved resume search by id. Requires HH_ACCESS_TOKEN.",
+    schema: getSavedResumeSearchSchema.shape,
+    handler: handleGetSavedResumeSearch,
+  },
+  // --- ATS / negotiations (require employer token) ---
+  {
+    name: "list_application_collections",
+    description:
+      "List negotiation collections and employer states for a vacancy (inbox folders). Start here before list_applications. Requires HH_ACCESS_TOKEN.",
+    schema: listApplicationCollectionsSchema.shape,
+    handler: handleListApplicationCollections,
+  },
+  {
+    name: "list_applications",
+    description:
+      "List applications/responses in a negotiation collection for a vacancy (page/per_page/order_by). Requires HH_ACCESS_TOKEN.",
+    schema: listApplicationsSchema.shape,
+    handler: handleListApplications,
+  },
+  {
+    name: "get_application",
+    description:
+      "Get a single application/negotiation by topic id. Requires HH_ACCESS_TOKEN.",
+    schema: getApplicationSchema.shape,
+    handler: handleGetApplication,
+  },
+  {
+    name: "get_application_messages",
+    description:
+      "Get chat messages for an application/negotiation topic. Requires HH_ACCESS_TOKEN.",
+    schema: getApplicationMessagesSchema.shape,
+    handler: handleGetApplicationMessages,
+  },
+  {
+    name: "get_negotiations_statistics",
+    description:
+      "Get employer-level negotiations statistics. Requires employer_id and HH_ACCESS_TOKEN.",
+    schema: getNegotiationsStatisticsSchema.shape,
+    handler: handleGetNegotiationsStatistics,
+  },
+  {
+    name: "get_preferred_negotiations_order",
+    description:
+      "Get the preferred negotiations sort order for a vacancy. Requires HH_ACCESS_TOKEN.",
+    schema: getPreferredNegotiationsOrderSchema.shape,
+    handler: handleGetPreferredNegotiationsOrder,
   },
   // --- Employers ---
   {
@@ -152,6 +310,83 @@ const TOOLS: ToolDef[] = [
     schema: getEmployerVacanciesSchema.shape,
     handler: handleGetEmployerVacancies,
   },
+  {
+    name: "list_employer_managers",
+    description:
+      "List managers for an employer account. Requires employer_id and HH_ACCESS_TOKEN.",
+    schema: listEmployerManagersSchema.shape,
+    handler: handleListEmployerManagers,
+  },
+  {
+    name: "get_employer_manager",
+    description:
+      "Get a single employer manager by id. Requires HH_ACCESS_TOKEN.",
+    schema: getEmployerManagerSchema.shape,
+    handler: handleGetEmployerManager,
+  },
+  {
+    name: "get_manager_resume_limits",
+    description:
+      "Get resume-view limits for a manager. Requires HH_ACCESS_TOKEN.",
+    schema: getManagerResumeLimitsSchema.shape,
+    handler: handleGetManagerResumeLimits,
+  },
+  {
+    name: "get_manager_negotiations_statistics",
+    description:
+      "Get negotiations statistics for a manager. Requires HH_ACCESS_TOKEN.",
+    schema: getManagerNegotiationsStatisticsSchema.shape,
+    handler: handleGetManagerNegotiationsStatistics,
+  },
+  {
+    name: "list_archived_vacancies",
+    description:
+      "List archived vacancies for an employer. Requires HH_ACCESS_TOKEN.",
+    schema: listArchivedVacanciesSchema.shape,
+    handler: handleListArchivedVacancies,
+  },
+  {
+    name: "list_hidden_vacancies",
+    description:
+      "List hidden vacancies for an employer. Requires HH_ACCESS_TOKEN.",
+    schema: listHiddenVacanciesSchema.shape,
+    handler: handleListHiddenVacancies,
+  },
+  {
+    name: "get_message_template",
+    description:
+      "Get a negotiation message template by id (optionally with topic_id / resume_id / vacancy_id). Requires HH_ACCESS_TOKEN.",
+    schema: getMessageTemplateSchema.shape,
+    handler: handleGetMessageTemplate,
+  },
+  {
+    name: "list_mail_templates",
+    description:
+      "List employer mail templates. Requires employer_id and HH_ACCESS_TOKEN.",
+    schema: listMailTemplatesSchema.shape,
+    handler: handleListMailTemplates,
+  },
+  {
+    name: "get_employer_vacancy_areas",
+    description:
+      "List active vacancy areas for an employer. Requires HH_ACCESS_TOKEN.",
+    schema: getEmployerVacancyAreasSchema.shape,
+    handler: handleGetEmployerVacancyAreas,
+  },
+  {
+    name: "get_employer_departments",
+    description:
+      "List departments for an employer. Requires HH_ACCESS_TOKEN.",
+    schema: getEmployerDepartmentsSchema.shape,
+    handler: handleGetEmployerDepartments,
+  },
+  {
+    name: "list_employer_addresses",
+    description:
+      "List addresses for an employer. Requires HH_ACCESS_TOKEN.",
+    schema: listEmployerAddressesSchema.shape,
+    handler: handleListEmployerAddresses,
+  },
   // --- Dictionaries & Suggests ---
   {
     name: "get_areas",
@@ -166,6 +401,12 @@ const TOOLS: ToolDef[] = [
       "Get the regions/cities subtree under one area id (e.g. 113=Russia) — lighter than the full /areas tree.",
     schema: getAreasSubtreeSchema.shape,
     handler: handleGetAreasSubtree,
+  },
+  {
+    name: "get_countries",
+    description: "List countries (id — name) from /areas/countries.",
+    schema: getCountriesSchema.shape,
+    handler: handleGetCountries,
   },
   {
     name: "get_professional_roles",
@@ -189,6 +430,25 @@ const TOOLS: ToolDef[] = [
     handler: handleGetMetro,
   },
   {
+    name: "get_languages",
+    description: "List languages (id — name) from /languages.",
+    schema: getLanguagesSchema.shape,
+    handler: handleGetLanguages,
+  },
+  {
+    name: "get_skills",
+    description: "List skills dictionary from /skills.",
+    schema: getSkillsSchema.shape,
+    handler: handleGetSkills,
+  },
+  {
+    name: "get_districts",
+    description:
+      "List districts (optionally filtered by area_id). Useful for address/area fine-tuning.",
+    schema: getDistrictsSchema.shape,
+    handler: handleGetDistricts,
+  },
+  {
     name: "get_dictionaries",
     description:
       "Get all reference dictionaries: currencies, employment types, schedules, experience levels, vacancy labels, and more.",
@@ -198,16 +458,23 @@ const TOOLS: ToolDef[] = [
   {
     name: "validate_token",
     description:
-      "Check whether HH_ACCESS_TOKEN is valid via /me and report the user role (applicant/employer). Use to diagnose resume-search access.",
+      "Check whether HH_ACCESS_TOKEN is valid via /me and report the user role (applicant/employer). Use to diagnose resume-search and ATS access.",
     schema: validateTokenSchema.shape,
     handler: handleValidateToken,
   },
   {
     name: "suggest_positions",
     description:
-      "Autocomplete job titles / professional roles. Returns matching role suggestions for partial input.",
+      "Autocomplete free-form job titles / positions via /suggests/positions (not role IDs — use suggest_professional_roles for those).",
     schema: suggestPositionsSchema.shape,
     handler: handleSuggestPositions,
+  },
+  {
+    name: "suggest_professional_roles",
+    description:
+      "Autocomplete professional roles with IDs via /suggests/professional_roles. Use for vacancy/resume search filters and salary stats.",
+    schema: suggestProfessionalRolesSchema.shape,
+    handler: handleSuggestProfessionalRoles,
   },
   {
     name: "suggest_companies",
@@ -222,6 +489,24 @@ const TOOLS: ToolDef[] = [
       "Autocomplete region/city names. Returns matching area suggestions for partial input.",
     schema: suggestAreasSchema.shape,
     handler: handleSuggestAreas,
+  },
+  {
+    name: "suggest_vacancy_search_keyword",
+    description: "Autocomplete vacancy-search keywords via /suggests/vacancy_search_keyword.",
+    schema: suggestVacancySearchKeywordSchema.shape,
+    handler: handleSuggestVacancySearchKeyword,
+  },
+  {
+    name: "suggest_resume_search_keyword",
+    description: "Autocomplete resume-search keywords via /suggests/resume_search_keyword.",
+    schema: suggestResumeSearchKeywordSchema.shape,
+    handler: handleSuggestResumeSearchKeyword,
+  },
+  {
+    name: "suggest_skill_set",
+    description: "Autocomplete skills via /suggests/skill_set.",
+    schema: suggestSkillSetSchema.shape,
+    handler: handleSuggestSkillSet,
   },
   // --- Salary ---
   {
@@ -387,7 +672,16 @@ async function main() {
   }
 }
 
-main().catch((error) => {
-  console.error("[hh-mcp] Fatal error:", error);
-  process.exit(1);
-});
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const isDirectRun =
+  process.argv[1] != null &&
+  path.resolve(fileURLToPath(import.meta.url)) === path.resolve(process.argv[1]);
+
+if (isDirectRun) {
+  main().catch((error) => {
+    console.error("[hh-mcp] Fatal error:", error);
+    process.exit(1);
+  });
+}

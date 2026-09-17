@@ -14,6 +14,14 @@ import type {
   Resume,
   Area,
   SearchResult,
+  NegotiationsCollectionsResponse,
+  NegotiationItem,
+  NegotiationMessagesResponse,
+  NegotiationsHistory,
+  EmployerManager,
+  VacancyStats,
+  SavedResumeSearch,
+  NamedId,
 } from "./types.js";
 
 const RU = "ru-RU";
@@ -228,4 +236,224 @@ export function flattenAreaTree(areas: Area[], depth = 0): string {
     if (a.areas?.length) out.push(flattenAreaTree(a.areas, depth + 1));
   }
   return out.join("\n");
+}
+
+export function formatNamedIdList(items: NamedId[] | undefined, empty = "(пусто)"): string {
+  if (!items?.length) return empty;
+  return items.map((i) => `${i.id} — ${i.name}`).join("\n");
+}
+
+export function formatApplicationCollections(data: NegotiationsCollectionsResponse): string {
+  const cols = data.collections ?? [];
+  const states = data.employer_states ?? [];
+  const lines: string[] = [];
+  lines.push(`Коллекции откликов: ${cols.length}`);
+  if (!cols.length) {
+    lines.push("(пусто)");
+  } else {
+    for (const c of cols) {
+      const desc = c.description ? ` — ${c.description}` : "";
+      lines.push(`• ${c.id}: ${c.name}${desc}`);
+    }
+  }
+  if (states.length) {
+    lines.push(`\nСостояния работодателя:`);
+    lines.push(formatNamedIdList(states));
+  }
+  return lines.join("\n");
+}
+
+function formatNegotiationListItem(n: NegotiationItem, idx: number): string {
+  const name = [n.resume?.first_name, n.resume?.last_name].filter(Boolean).join(" ");
+  const title = n.resume?.title ?? "—";
+  const state = n.employer_state?.name ?? n.state?.name ?? "—";
+  const meta = [
+    name || null,
+    n.resume?.area?.name,
+    n.resume?.age != null ? `${n.resume.age} лет` : null,
+    n.has_updates ? "есть обновления" : null,
+  ].filter(Boolean);
+  const lines: string[] = [];
+  lines.push(`${idx}. ${title} · ${state} (id=${n.id})`);
+  if (meta.length) lines.push(`   ${meta.join(" · ")}`);
+  if (n.resume?.id) lines.push(`   resume_id=${n.resume.id}`);
+  if (n.created_at || n.updated_at) {
+    lines.push(`   создан=${n.created_at ?? "—"} · обновлён=${n.updated_at ?? "—"}`);
+  }
+  if (n.resume?.alternate_url) lines.push(`   ${n.resume.alternate_url}`);
+  return lines.join("\n");
+}
+
+export function formatApplicationList(result: SearchResult<NegotiationItem>): string {
+  const header = paginationHeader("откликов", result);
+  if (!result.items?.length) return `${header}\n(пусто)`;
+  return (
+    header +
+    "\n\n" +
+    result.items.map((n, i) => formatNegotiationListItem(n, i + 1)).join("\n\n")
+  );
+}
+
+export function formatApplication(n: NegotiationItem): string {
+  const lines: string[] = [];
+  const name = [n.resume?.first_name, n.resume?.last_name].filter(Boolean).join(" ");
+  lines.push(`# Отклик ${n.id}`);
+  lines.push(`Статус: ${n.employer_state?.name ?? n.state?.name ?? "—"}`);
+  if (n.vacancy?.name) {
+    lines.push(`Вакансия: ${n.vacancy.name}${n.vacancy.id ? ` (id=${n.vacancy.id})` : ""}`);
+  }
+  if (n.resume) {
+    lines.push(
+      `Резюме: ${n.resume.title ?? "—"}${n.resume.id ? ` (id=${n.resume.id})` : ""}` +
+        (name ? ` · ${name}` : ""),
+    );
+    if (n.resume.alternate_url) lines.push(`Ссылка: ${n.resume.alternate_url}`);
+  }
+  if (n.created_at) lines.push(`Создан: ${n.created_at}`);
+  if (n.updated_at) lines.push(`Обновлён: ${n.updated_at}`);
+  if (n.messages_url) lines.push(`Сообщения: get_application_messages с nid=${n.id}`);
+  return lines.join("\n");
+}
+
+export function formatApplicationMessages(data: NegotiationMessagesResponse): string {
+  const items = data.items ?? [];
+  const found = data.found ?? items.length;
+  const lines: string[] = [`Сообщений: ${found}`];
+  if (!items.length) {
+    lines.push("(пусто)");
+    return lines.join("\n");
+  }
+  for (const m of items) {
+    const who = m.author?.participant_type ?? "?";
+    const when = m.created_at ?? "";
+    const text = m.text ? truncate(stripTags(m.text), 400) : "(без текста)";
+    lines.push(`• [${who}] ${when}: ${text}`);
+  }
+  return lines.join("\n");
+}
+
+export function formatNegotiationsHistory(data: NegotiationsHistory): string {
+  const items = data.negotiations ?? data.items ?? [];
+  const vac = data.vacancy?.name
+    ? `Вакансия: ${data.vacancy.name}${data.vacancy.id ? ` (id=${data.vacancy.id})` : ""}\n`
+    : "";
+  if (!items.length) return `${vac}История откликов: (пусто)`;
+  const lines = items.map((h, i) => {
+    const state = h.employer_state?.name ?? "—";
+    const v = h.vacancy?.name
+      ? ` · ${h.vacancy.name}${h.vacancy.id ? ` (${h.vacancy.id})` : ""}`
+      : "";
+    return `${i + 1}. ${state}${v}${h.created_at ? ` · ${h.created_at}` : ""}`;
+  });
+  return `${vac}История откликов (${items.length}):\n` + lines.join("\n");
+}
+
+export function formatNegotiationsStatistics(data: unknown): string {
+  if (data == null || typeof data !== "object") return String(data);
+  const obj = data as Record<string, unknown>;
+  const lines: string[] = ["Статистика откликов:"];
+  for (const [k, v] of Object.entries(obj)) {
+    if (v != null && typeof v === "object" && !Array.isArray(v)) {
+      const nested = Object.entries(v as Record<string, unknown>)
+        .map(([nk, nv]) => `${nk}=${nv}`)
+        .join(", ");
+      lines.push(`• ${k}: ${nested || JSON.stringify(v)}`);
+    } else if (Array.isArray(v)) {
+      lines.push(`• ${k}: ${v.length} записей`);
+    } else {
+      lines.push(`• ${k}: ${v}`);
+    }
+  }
+  return lines.join("\n");
+}
+
+export function formatPreferredOrder(data: unknown): string {
+  if (data == null || typeof data !== "object") return String(data);
+  const obj = data as { order_by?: string; preferred?: string; id?: string; name?: string };
+  if (obj.order_by) return `Предпочтительная сортировка: ${obj.order_by}`;
+  if (obj.preferred) return `Предпочтительная сортировка: ${obj.preferred}`;
+  if (obj.id || obj.name) return `Предпочтительная сортировка: ${obj.id ?? obj.name}`;
+  return JSON.stringify(data, null, 2);
+}
+
+export function formatManagerListItem(m: EmployerManager, idx: number): string {
+  const meta = [m.email, m.phone, m.manager_type?.name].filter(Boolean);
+  const flag = m.is_main_contact_person ? " · основной контакт" : "";
+  return `${idx}. ${m.full_name ?? "—"} (id=${m.id})${flag}${
+    meta.length ? `\n   ${meta.join(" · ")}` : ""
+  }`;
+}
+
+export function formatManagerList(
+  result: SearchResult<EmployerManager> | { items?: EmployerManager[] },
+): string {
+  const items = result.items ?? [];
+  const found =
+    "found" in result && typeof result.found === "number" ? result.found : items.length;
+  if (!items.length) return `Менеджеров: ${found}\n(пусто)`;
+  return (
+    `Менеджеров: ${found}\n\n` +
+    items.map((m, i) => formatManagerListItem(m, i + 1)).join("\n")
+  );
+}
+
+export function formatManager(m: EmployerManager): string {
+  const lines: string[] = [`# ${m.full_name ?? "Менеджер"} (id=${m.id})`];
+  if (m.email) lines.push(`Email: ${m.email}`);
+  if (m.phone) lines.push(`Телефон: ${m.phone}`);
+  if (m.manager_type?.name) lines.push(`Тип: ${m.manager_type.name}`);
+  if (m.is_main_contact_person) lines.push("Основной контакт: да");
+  return lines.join("\n");
+}
+
+export function formatVacancyStats(stats: VacancyStats): string {
+  const lines: string[] = ["Статистика вакансии:"];
+  const known = ["views", "responses", "invitations"] as const;
+  for (const key of known) {
+    const block = stats[key];
+    if (block && typeof block === "object") {
+      const b = block as { total?: number; previous?: number };
+      const prev = b.previous != null ? ` (ранее ${b.previous})` : "";
+      lines.push(`• ${key}: ${b.total ?? "—"}${prev}`);
+    }
+  }
+  for (const [k, v] of Object.entries(stats)) {
+    if ((known as readonly string[]).includes(k)) continue;
+    if (v != null && typeof v !== "object") lines.push(`• ${k}: ${v}`);
+  }
+  return lines.length > 1 ? lines.join("\n") : JSON.stringify(stats, null, 2);
+}
+
+export function formatSavedResumeSearchList(
+  result: SearchResult<SavedResumeSearch> | { items?: SavedResumeSearch[] },
+): string {
+  const items = result.items ?? [];
+  const found =
+    "found" in result && typeof result.found === "number" ? result.found : items.length;
+  if (!items.length) return `Сохранённых поисков: ${found}\n(пусто)`;
+  return (
+    `Сохранённых поисков: ${found}\n\n` +
+    items
+      .map((s, i) => {
+        const meta = [
+          s.subscription ? "подписка" : null,
+          s.items?.count != null ? `всего ${s.items.count}` : null,
+          s.new_items?.count != null ? `новых ${s.new_items.count}` : null,
+          s.created_at,
+        ].filter(Boolean);
+        return `${i + 1}. ${s.name ?? "—"} (id=${s.id})${
+          meta.length ? `\n   ${meta.join(" · ")}` : ""
+        }`;
+      })
+      .join("\n")
+  );
+}
+
+export function formatSavedResumeSearch(s: SavedResumeSearch): string {
+  const lines: string[] = [`# ${s.name ?? "Поиск"} (id=${s.id})`];
+  if (s.created_at) lines.push(`Создан: ${s.created_at}`);
+  if (s.subscription != null) lines.push(`Подписка: ${s.subscription ? "да" : "нет"}`);
+  if (s.items?.count != null) lines.push(`Всего результатов: ${s.items.count}`);
+  if (s.new_items?.count != null) lines.push(`Новых: ${s.new_items.count}`);
+  return lines.join("\n");
 }
