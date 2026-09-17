@@ -6,6 +6,7 @@ All notable changes to this project are documented here. This project adheres to
 ## [Unreleased]
 
 ### Changed
+- Published as **`@andrey-tepaykin/hh-mcp`** (npm scope `andrey-tepaykin`).
 - **`get_salary_statistics`** tries paid Банк данных
   (`GET /salary_statistics/paid/salary_evaluation/{area_id}`) when `HH_ACCESS_TOKEN`
   and `area_id` are set; on 401/403/404 falls back to vacancy salary sampling.

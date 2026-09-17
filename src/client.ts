@@ -9,7 +9,7 @@ const MAX_RETRIES = 3;
 // without it risk being blocked or captcha-gated. The default carries the repo
 // URL as a contact channel; operators can override with their own app + contact
 // email via the HH_USER_AGENT env var (e.g. "my-app/1.0 (me@example.com)").
-const DEFAULT_USER_AGENT = `hh-mcp/${VERSION} (+https://github.com/theYahia/hh-mcp)`;
+const DEFAULT_USER_AGENT = `hh-mcp/${VERSION} (+https://github.com/AndreyTepaykin/hh-mcp)`;
 const USER_AGENT = process.env.HH_USER_AGENT?.trim() || DEFAULT_USER_AGENT;
 
 // Rate limiter: 5 requests per second

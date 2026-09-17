@@ -2,15 +2,15 @@
 
 Если вы искали, как подключить hh.ru к Claude или другому ИИ-агенту, — этот сервер даёт агенту поиск по вакансиям и резюме, inbox откликов (ATS), карточки работодателей, статистику зарплат и справочники hh.ru по России и СНГ. Спрашиваете «найди Python-вакансии в Москве от 250 000 ₽ на удалёнке» — агент возвращает готовый список с зарплатами и опытом, а не ссылку на выдачу. Поиск вакансий работает без токена; токен нужен для базы резюме и ATS.
 
-[![npm](https://img.shields.io/npm/v/@theyahia/hh-mcp)](https://www.npmjs.com/package/@theyahia/hh-mcp)
-[![CI](https://github.com/theYahia/hh-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/theYahia/hh-mcp/actions)
+[![npm](https://img.shields.io/npm/v/@andrey-tepaykin/hh-mcp)](https://www.npmjs.com/package/@andrey-tepaykin/hh-mcp)
+[![CI](https://github.com/AndreyTepaykin/hh-mcp/actions/workflows/ci.yml/badge.svg)](https://github.com/AndreyTepaykin/hh-mcp/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 ![Демонстрация: вопрос «найди Python-вакансии в Москве от 250 000 ₽ на удалёнке» — агент вызывает search_vacancies и отвечает списком вакансий](https://raw.githubusercontent.com/theYahia/WWmcp/main/servers/hh/assets/demo.svg)
 
 По умолчанию ответы приходят компактными сводками, удобными для LLM — передайте `raw: true` любому инструменту поиска или карточки, чтобы получить полный JSON hh.ru.
 
-Часть серии [WWmcp](https://github.com/theYahia/WWmcp) от [@theYahia](https://github.com/theYahia).
+Основано на [@theyahia/hh-mcp](https://github.com/theYahia/hh-mcp) от [@theYahia](https://github.com/theYahia).
 
 ## Два режима
 
@@ -30,7 +30,7 @@
   "mcpServers": {
     "hh": {
       "command": "npx",
-      "args": ["-y", "@theyahia/hh-mcp"],
+      "args": ["-y", "@andrey-tepaykin/hh-mcp"],
       "env": {
         "HH_ACCESS_TOKEN": "optional-oauth-token"
       }
@@ -42,9 +42,9 @@
 ### Claude Code
 
 ```bash
-claude mcp add hh -- npx -y @theyahia/hh-mcp
+claude mcp add hh -- npx -y @andrey-tepaykin/hh-mcp
 # С токеном:
-claude mcp add hh -e HH_ACCESS_TOKEN=your-token -- npx -y @theyahia/hh-mcp
+claude mcp add hh -e HH_ACCESS_TOKEN=your-token -- npx -y @andrey-tepaykin/hh-mcp
 ```
 
 ### VS Code / Cursor
@@ -54,7 +54,7 @@ claude mcp add hh -e HH_ACCESS_TOKEN=your-token -- npx -y @theyahia/hh-mcp
   "servers": {
     "hh": {
       "command": "npx",
-      "args": ["-y", "@theyahia/hh-mcp"]
+      "args": ["-y", "@andrey-tepaykin/hh-mcp"]
     }
   }
 }
@@ -67,7 +67,7 @@ claude mcp add hh -e HH_ACCESS_TOKEN=your-token -- npx -y @theyahia/hh-mcp
   "mcpServers": {
     "hh": {
       "command": "npx",
-      "args": ["-y", "@theyahia/hh-mcp"]
+      "args": ["-y", "@andrey-tepaykin/hh-mcp"]
     }
   }
 }
@@ -76,9 +76,9 @@ claude mcp add hh -e HH_ACCESS_TOKEN=your-token -- npx -y @theyahia/hh-mcp
 ### Режим HTTP (Streamable HTTP)
 
 ```bash
-npx @theyahia/hh-mcp --http
+npx @andrey-tepaykin/hh-mcp --http
 # или
-HTTP_PORT=8080 npx @theyahia/hh-mcp --http
+HTTP_PORT=8080 npx @andrey-tepaykin/hh-mcp --http
 ```
 
 Эндпоинт: `http://localhost:3000/mcp` (POST) · Проверка состояния: `http://localhost:3000/health` (GET)
@@ -210,7 +210,7 @@ HTTP-режим stateless, по умолчанию слушает `127.0.0.1` с
 ## Разработка
 
 ```bash
-git clone https://github.com/theYahia/hh-mcp.git
+git clone https://github.com/AndreyTepaykin/hh-mcp.git
 cd hh-mcp
 npm install
 npm run build
@@ -228,4 +228,4 @@ MIT
 
 ---
 
-Часть [WWmcp](https://github.com/theYahia/WWmcp) · Telegram: [@vhodvai](https://t.me/vhodvai)
+Репозиторий: [AndreyTepaykin/hh-mcp](https://github.com/AndreyTepaykin/hh-mcp) · npm: [@andrey-tepaykin/hh-mcp](https://www.npmjs.com/package/@andrey-tepaykin/hh-mcp)

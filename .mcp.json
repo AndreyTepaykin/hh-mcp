@@ -2,7 +2,7 @@
   "mcpServers": {
     "hh": {
       "command": "npx",
-      "args": ["-y", "@theyahia/hh-mcp"]
+      "args": ["-y", "@andrey-tepaykin/hh-mcp"]
     }
   }
 }

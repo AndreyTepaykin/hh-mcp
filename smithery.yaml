@@ -14,7 +14,7 @@ startCommand:
   commandFunction: |-
     (config) => ({
       command: "npx",
-      args: ["-y", "@theyahia/hh-mcp"],
+      args: ["-y", "@andrey-tepaykin/hh-mcp"],
       env: {
         ...(config.HH_ACCESS_TOKEN ? { HH_ACCESS_TOKEN: config.HH_ACCESS_TOKEN } : {}),
       },

@@ -1,5 +1,5 @@
 {
-  "name": "@theyahia/hh-mcp",
+  "name": "@andrey-tepaykin/hh-mcp",
   "version": "2.2.0",
   "description": "MCP server for HeadHunter — vacancy search, resumes, salary stats (Russia)",
   "type": "module",
@@ -41,7 +41,7 @@
   "publishConfig": {
     "access": "public"
   },
-  "mcpName": "io.github.theYahia/hh-mcp",
+  "mcpName": "io.github.AndreyTepaykin/hh-mcp",
   "keywords": [
     "mcp",
     "mcp-server",
@@ -63,8 +63,11 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/theYahia/hh-mcp.git"
+    "url": "https://github.com/AndreyTepaykin/hh-mcp.git"
   },
-  "homepage": "https://github.com/theYahia/hh-mcp#readme",
-  "author": "theYahia (https://github.com/theYahia)"
+  "homepage": "https://github.com/AndreyTepaykin/hh-mcp#readme",
+  "bugs": {
+    "url": "https://github.com/AndreyTepaykin/hh-mcp/issues"
+  },
+  "author": "Andrey Tepaykin (https://github.com/AndreyTepaykin)"
 }
