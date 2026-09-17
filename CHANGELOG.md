@@ -3,6 +3,15 @@
 All notable changes to this project are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [Unreleased]
+
+### Changed
+- **`get_salary_statistics`** tries paid Банк данных
+  (`GET /salary_statistics/paid/salary_evaluation/{area_id}`) when `HH_ACCESS_TOKEN`
+  and `area_id` are set; on 401/403/404 falls back to vacancy salary sampling.
+  Optional bank params: `speciality`, `employee_level`, `industry`, `extend_sources`
+  (`text` → `position_name`).
+
 ## [2.2.0] - 2026-09-17
 
 ### Added

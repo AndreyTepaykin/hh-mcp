@@ -512,7 +512,7 @@ const TOOLS: ToolDef[] = [
   {
     name: "get_salary_statistics",
     description:
-      "Estimate salary distribution (median, P25/P75, min/max) for a professional role in a region by sampling posted vacancy salaries client-side. Biased sample (only vacancies that disclose salary) — not official market data.",
+      "Salary distribution for a role/region. With HH_ACCESS_TOKEN + area_id, tries paid Банк данных зарплат (/salary_statistics/paid/salary_evaluation/{area_id}); on 401/403/404 or without token/area falls back to sampling vacancy salaries (biased). Optional speciality/employee_level/industry/extend_sources for the bank; text maps to position_name.",
     schema: getSalaryStatisticsSchema.shape,
     handler: handleGetSalaryStatistics,
   },

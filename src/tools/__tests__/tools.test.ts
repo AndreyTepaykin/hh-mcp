@@ -619,11 +619,9 @@ describe("validate_token", () => {
   });
 });
 
-describe("salary statistics (client-side distribution)", () => {
-  it("samples vacancies and computes a distribution", async () => {
-    // call 1: total (per_page=1)  → found 1000
+describe("salary statistics", () => {
+  it("samples vacancies when no token (client-side distribution)", async () => {
     mockHhGet.mockResolvedValueOnce({ found: 1000, items: [{}], pages: 1000, per_page: 1, page: 0 });
-    // call 2: sample (label=with_salary) → a handful of salaried vacancies
     mockHhGet.mockResolvedValueOnce({
       found: 580,
       pages: 6,
@@ -643,6 +641,7 @@ describe("salary statistics (client-side distribution)", () => {
     });
     const firstUrl = mockHhGet.mock.calls[0]![0] as string;
     const secondUrl = mockHhGet.mock.calls[1]![0] as string;
+    expect(firstUrl).toContain("/vacancies?");
     expect(firstUrl).toContain("professional_role=96");
     expect(firstUrl).toContain("area=1");
     expect(secondUrl).toContain("label=with_salary");
@@ -650,7 +649,65 @@ describe("salary statistics (client-side distribution)", () => {
     expect(result).toContain("Смещённая оценка");
   });
 
-  it("returns the stats object with raw:true", async () => {
+  it("uses paid salary bank when token + area_id succeed", async () => {
+    process.env.HH_ACCESS_TOKEN = "tok";
+    mockHhGet.mockResolvedValueOnce({
+      market_salary: {
+        average: 50054,
+        bottom: 28500,
+        maximum: 52643,
+        median: 35000,
+        minimum: 20000,
+        upper: 50000,
+      },
+      resulting_parameters: {
+        areas: [{ id: "1", name: "Москва" }],
+        employers_count: 21,
+        positions_count: 1648,
+        sources: ["SALARIES"],
+        specialities: [{ id: "1200000", name: "Эксплуатация информационных систем" }],
+      },
+    });
+    const result = await handleGetSalaryStatistics({
+      professional_role_id: 96,
+      area_id: 1,
+      text: "python",
+      speciality: "1200000",
+      sample_pages: 1,
+    });
+    expect(mockHhGet).toHaveBeenCalledTimes(1);
+    const url = mockHhGet.mock.calls[0]![0] as string;
+    expect(url).toContain("/salary_statistics/paid/salary_evaluation/1?");
+    expect(url).toContain("position_name=python");
+    expect(url).toContain("speciality=1200000");
+    expect(result).toContain("Банк данных зарплат");
+    expect(result).toContain("Медиана");
+    expect(result).toMatch(/35/);
+  });
+
+  it("falls back to vacancy sample on paid 403", async () => {
+    process.env.HH_ACCESS_TOKEN = "tok";
+    mockHhGet
+      .mockRejectedValueOnce(new HhApiError(403, "Forbidden"))
+      .mockResolvedValueOnce({ found: 100, items: [{}] })
+      .mockResolvedValueOnce({
+        found: 50,
+        items: [
+          { salary: { from: 100000, currency: "RUR" } },
+          { salary: { from: 300000, currency: "RUR" } },
+        ],
+      });
+    const result = await handleGetSalaryStatistics({
+      professional_role_id: 96,
+      area_id: 1,
+      sample_pages: 1,
+    });
+    expect(mockHhGet.mock.calls[0]![0]).toContain("/salary_statistics/paid/");
+    expect(mockHhGet.mock.calls[1]![0]).toContain("/vacancies?");
+    expect(result).toContain("Смещённая оценка");
+  });
+
+  it("returns the stats object with raw:true (vacancy path)", async () => {
     mockHhGet.mockResolvedValueOnce({ found: 100, items: [{}] });
     mockHhGet.mockResolvedValueOnce({
       found: 50,
@@ -665,6 +722,7 @@ describe("salary statistics (client-side distribution)", () => {
       sample_pages: 1,
     });
     const stats = JSON.parse(result);
+    expect(stats.source).toBe("vacancy_sample");
     expect(stats.median).toBe(200000);
     expect(stats.currency).toBe("RUR");
     expect(stats.sample_size).toBe(2);
