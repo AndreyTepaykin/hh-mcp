@@ -3,6 +3,28 @@
 All notable changes to this project are documented here. This project adheres to
 [Semantic Versioning](https://semver.org/).
 
+## [2.2.0] - 2026-09-17
+
+### Added
+- **ATS / negotiations GET tools** (employer token): `list_application_collections`,
+  `list_applications`, `get_application`, `get_application_messages`,
+  `get_negotiations_statistics`, `get_resume_negotiations_history`,
+  `get_preferred_negotiations_order`.
+- **Employer ops:** managers, resume limits, manager negotiations stats, archived/hidden
+  vacancies, message/mail templates, vacancy areas, departments, addresses.
+- **Vacancy extras:** `get_vacancy_stats`, `get_vacancy_visitors`, `get_vacancy_conditions`,
+  `get_related_vacancies`.
+- **Saved resume searches:** `list_saved_resume_searches`, `get_saved_resume_search`.
+- **References:** `suggest_professional_roles`, keyword/skill suggests, `get_countries`,
+  `get_languages`, `get_skills`, `get_districts`.
+- Shared `requireToken()` in `src/auth.ts` for resume + ATS tools.
+- Tool count is now **51** (was 19).
+
+### Changed
+- **`suggest_positions`** now calls `/suggests/positions` (free-form titles). Role IDs
+  live under the new `suggest_professional_roles` tool (`/suggests/professional_roles`).
+- Schema hints for role IDs point to `suggest_professional_roles`.
+
 ## [2.1.0] - 2026-06-23
 
 ### Fixed

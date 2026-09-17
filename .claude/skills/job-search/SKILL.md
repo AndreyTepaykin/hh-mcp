@@ -1,6 +1,6 @@
 ---
 name: job-search
-description: Поиск вакансий на hh.ru с анализом зарплат по специальности и региону
+description: Поиск вакансий на hh.ru с анализом зарплат по специальности и региону; для ATS — разбор откликов по вакансии
 argument-hint: <специальность> [город] [зарплата от]
 allowed-tools:
   - Bash
@@ -9,12 +9,19 @@ allowed-tools:
 
 # /job-search — Поиск вакансий с аналитикой
 
-## Алгоритм
+## Алгоритм (поиск вакансий)
 
-1. При необходимости определи `professional_role_id` через `suggest_positions` (по названию специальности) и `area`-код через `suggest_areas` (по городу).
+1. При необходимости определи `professional_role_id` через `suggest_professional_roles` (по названию специальности) и `area`-код через `suggest_areas` (по городу). Для свободных названий должностей — `suggest_positions`.
 2. Вызови `search_vacancies` с ключевыми словами, регионом (`area`), зарплатой.
 3. Вызови `get_salary_statistics` (`professional_role_id`, опц. `area_id`) — вернёт медиану/перцентили по выборке вакансий с зарплатой.
 4. Покажи топ вакансий + медианную зарплату (с пометкой, что это оценка по объявлениям, не официальные данные рынка).
+
+## Алгоритм (ATS / отклики) — нужен `HH_ACCESS_TOKEN`
+
+1. `validate_token` — убедись, что токен employer.
+2. `list_application_collections` (`vacancy_id`) — папки inbox.
+3. `list_applications` (`collection`, `vacancy_id`, опц. `order_by` из `get_preferred_negotiations_order`).
+4. `get_application` → при необходимости `get_application_messages` и/или `get_resume`.
 
 ## Формат ответа
 
