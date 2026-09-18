@@ -34,6 +34,7 @@ import {
   handleGetEmployerVacancies,
   handleListEmployerManagers,
   handleGetEmployerManager,
+  handleListActiveVacancies,
   handleListArchivedVacancies,
   handleListHiddenVacancies,
   handleGetMessageTemplate,
@@ -501,8 +502,18 @@ describe("employer ATS tools", () => {
     expect(lastUrl()).toContain("/negotiations_statistics");
   });
 
+  it("list_active_vacancies requires token", async () => {
+    await expect(
+      handleListActiveVacancies({ employer_id: "1740", page: 0, per_page: 20 }),
+    ).rejects.toThrow(/HH_ACCESS_TOKEN/);
+  });
+
   it("archived/hidden vacancies and templates/addresses", async () => {
     process.env.HH_ACCESS_TOKEN = "t";
+    mockHhGet.mockResolvedValueOnce({ items: [], found: 0, pages: 0, per_page: 20, page: 0 });
+    await handleListActiveVacancies({ employer_id: "1740", page: 0, per_page: 20 });
+    expect(lastUrl()).toContain("/vacancies/active");
+
     mockHhGet.mockResolvedValueOnce({ items: [], found: 0, pages: 0, per_page: 20, page: 0 });
     await handleListArchivedVacancies({ employer_id: "1740", page: 0, per_page: 20 });
     expect(lastUrl()).toContain("/vacancies/archived");
@@ -597,8 +608,8 @@ describe("vacancy extras + saved searches", () => {
 });
 
 describe("tool registry", () => {
-  it("exposes 51 tools", () => {
-    expect(TOOL_COUNT).toBe(51);
+  it("exposes 52 tools", () => {
+    expect(TOOL_COUNT).toBe(52);
   });
 });
 

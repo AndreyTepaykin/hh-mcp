@@ -12,6 +12,10 @@ All notable changes to this project are documented here. This project adheres to
 - HTTP mode is enabled only by `--http` (not by a bare `HTTP_PORT` env var).
 - In-process rate limiter serializes waiters so concurrent calls cannot exceed 5 req/s.
 
+### Added
+- **`list_active_vacancies`** — employer-token listing of published vacancies via
+  `/employers/{id}/vacancies/active` (pair with public `get_employer_vacancies`).
+
 ### Changed
 - Published as **`@andrey-tepaykin/hh-mcp`** (npm scope `andrey-tepaykin`).
 - **`get_salary_statistics`** tries paid Банк данных

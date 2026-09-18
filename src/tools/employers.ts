@@ -157,6 +157,27 @@ export async function handleGetManagerNegotiationsStatistics(
   return formatNegotiationsStatistics(result);
 }
 
+export const listActiveVacanciesSchema = z.object({
+  employer_id: employerId.describe("Employer ID of the authenticated account"),
+  page: z.number().int().min(0).default(0).describe("Page number (0-based)"),
+  per_page: z.number().int().min(1).max(100).default(20).describe("Results per page"),
+  raw: rawFlag,
+});
+
+export async function handleListActiveVacancies(
+  params: z.infer<typeof listActiveVacanciesSchema>,
+): Promise<string> {
+  requireToken();
+  const query = new URLSearchParams();
+  query.set("page", String(params.page));
+  query.set("per_page", String(params.per_page));
+  const result = await hhGet(
+    `/employers/${encodeURIComponent(params.employer_id)}/vacancies/active?${query.toString()}`,
+  );
+  if (params.raw) return JSON.stringify(result, null, 2);
+  return formatVacancySearch(result as SearchResult<Vacancy>);
+}
+
 export const listArchivedVacanciesSchema = z.object({
   employer_id: employerId.describe("Employer ID"),
   page: z.number().int().min(0).default(0).describe("Page number (0-based)"),

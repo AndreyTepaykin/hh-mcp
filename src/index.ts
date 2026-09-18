@@ -37,6 +37,8 @@ import {
   handleGetManagerResumeLimits,
   getManagerNegotiationsStatisticsSchema,
   handleGetManagerNegotiationsStatistics,
+  listActiveVacanciesSchema,
+  handleListActiveVacancies,
   listArchivedVacanciesSchema,
   handleListArchivedVacancies,
   listHiddenVacanciesSchema,
@@ -338,6 +340,13 @@ const TOOLS: ToolDef[] = [
       "Get negotiations statistics for a manager. Requires HH_ACCESS_TOKEN.",
     schema: getManagerNegotiationsStatisticsSchema.shape,
     handler: handleGetManagerNegotiationsStatistics,
+  },
+  {
+    name: "list_active_vacancies",
+    description:
+      "List published (active) vacancies for the authenticated employer account via /employers/{id}/vacancies/active. Requires HH_ACCESS_TOKEN. For any employer's public vacancies use get_employer_vacancies.",
+    schema: listActiveVacanciesSchema.shape,
+    handler: handleListActiveVacancies,
   },
   {
     name: "list_archived_vacancies",
