@@ -5,6 +5,8 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+## [2.2.1] - 2026-09-18
+
 ### Fixed
 - **`get_skills`** now requires skill `id`(s) (1–50); bare `/skills` is invalid per hh.ru.
 - **`get_employer_vacancies`** uses public `/vacancies?employer_id=` instead of the
@@ -15,6 +17,7 @@ All notable changes to this project are documented here. This project adheres to
 ### Added
 - **`list_active_vacancies`** — employer-token listing of published vacancies via
   `/employers/{id}/vacancies/active` (pair with public `get_employer_vacancies`).
+  Tool count is now **52**.
 
 ### Changed
 - Published as **`@andrey-tepaykin/hh-mcp`** (npm scope `andrey-tepaykin`).

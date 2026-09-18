@@ -1,6 +1,6 @@
 {
   "name": "@andrey-tepaykin/hh-mcp",
-  "version": "2.2.0",
+  "version": "2.2.1",
   "description": "MCP server for HeadHunter — vacancy search, resumes, salary stats (Russia)",
   "type": "module",
   "main": "dist/index.js",
