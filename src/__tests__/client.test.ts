@@ -125,9 +125,18 @@ describe("rate limit + retries", () => {
 
   it("lets a burst of calls through (serializing extras past the 5 req/s window)", async () => {
     mockFetch.mockResolvedValue(ok({}));
+    const started: number[] = [];
+    mockFetch.mockImplementation(() => {
+      started.push(Date.now());
+      return Promise.resolve(ok({}));
+    });
     const ps = Array.from({ length: 7 }, () => hhGet("/x"));
     await vi.runAllTimersAsync();
     await Promise.all(ps);
     expect(mockFetch).toHaveBeenCalledTimes(7);
+    // First 5 may share the opening window; 6th/7th must wait a full RATE_WINDOW
+    // after the earliest of those five — not all fire in one stampede.
+    const sorted = [...started].sort((a, b) => a - b);
+    expect(sorted[5]! - sorted[0]!).toBeGreaterThanOrEqual(1000);
   });
 });

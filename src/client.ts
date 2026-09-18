@@ -12,25 +12,42 @@ const MAX_RETRIES = 3;
 const DEFAULT_USER_AGENT = `hh-mcp/${VERSION} (+https://github.com/AndreyTepaykin/hh-mcp)`;
 const USER_AGENT = process.env.HH_USER_AGENT?.trim() || DEFAULT_USER_AGENT;
 
-// Rate limiter: 5 requests per second
+// Rate limiter: 5 requests per second. Access is serialized so concurrent
+// callers cannot stampede past the window (thundering herd after a shared wait).
 const RATE_LIMIT = 5;
 const RATE_WINDOW = 1000;
 const timestamps: number[] = [];
+let rateLimitTail: Promise<void> = Promise.resolve();
 
 async function waitForRateLimit(): Promise<void> {
-  const now = Date.now();
-  // Remove timestamps outside the window
-  while (timestamps.length > 0 && timestamps[0]! <= now - RATE_WINDOW) {
-    timestamps.shift();
-  }
-  if (timestamps.length >= RATE_LIMIT) {
-    const oldest = timestamps[0]!;
-    const waitMs = oldest + RATE_WINDOW - now;
-    if (waitMs > 0) {
-      await new Promise((r) => setTimeout(r, waitMs));
+  let release!: () => void;
+  const gate = new Promise<void>((resolve) => {
+    release = resolve;
+  });
+  const previous = rateLimitTail;
+  rateLimitTail = previous.then(() => gate);
+  await previous;
+
+  try {
+    const trim = (now: number) => {
+      while (timestamps.length > 0 && timestamps[0]! <= now - RATE_WINDOW) {
+        timestamps.shift();
+      }
+    };
+
+    trim(Date.now());
+    if (timestamps.length >= RATE_LIMIT) {
+      const oldest = timestamps[0]!;
+      const waitMs = oldest + RATE_WINDOW - Date.now();
+      if (waitMs > 0) {
+        await new Promise((r) => setTimeout(r, waitMs));
+      }
+      trim(Date.now());
     }
+    timestamps.push(Date.now());
+  } finally {
+    release();
   }
-  timestamps.push(Date.now());
 }
 
 export class HhApiError extends Error {
