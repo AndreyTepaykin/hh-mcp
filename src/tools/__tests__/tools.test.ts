@@ -231,10 +231,11 @@ describe("employers", () => {
     expect(JSON.parse(result).name).toBe("Yandex");
   });
 
-  it("get_employer_vacancies lists active vacancies", async () => {
+  it("get_employer_vacancies lists via public vacancy search", async () => {
     mockHhGet.mockResolvedValueOnce({ items: [], found: 0, pages: 0, per_page: 20, page: 0 });
     await handleGetEmployerVacancies({ employer_id: "1740", per_page: 20, page: 0 });
-    expect(lastUrl()).toContain("/employers/1740/vacancies/active");
+    expect(lastUrl()).toContain("/vacancies?");
+    expect(lastUrl()).toContain("employer_id=1740");
   });
 });
 
@@ -359,14 +360,25 @@ describe("references", () => {
     expect(await handleGetLanguages()).toContain("Русский");
     expect(mockHhGet).toHaveBeenCalledWith("/languages");
 
-    mockHhGet.mockResolvedValueOnce([{ id: "1", name: "Python" }]);
-    expect(await handleGetSkills()).toContain("Python");
-    expect(mockHhGet).toHaveBeenCalledWith("/skills");
+    mockHhGet.mockResolvedValueOnce({ items: [{ id: "2716", text: "Python" }] });
+    expect(await handleGetSkills({ id: ["2716"] })).toContain("Python");
+    expect(lastUrl()).toContain("/skills?");
+    expect(lastUrl()).toContain("id=2716");
 
     mockHhGet.mockResolvedValueOnce([{ id: "1", name: "ЦАО" }]);
     await handleGetDistricts({ area_id: "1" });
     expect(lastUrl()).toContain("/districts?");
     expect(lastUrl()).toContain("area=1");
+  });
+
+  it("get_skills accepts a single id string and rejects oversized batches at runtime", async () => {
+    mockHhGet.mockResolvedValueOnce({ items: [{ id: "1", text: "SQL" }] });
+    await handleGetSkills({ id: "1" });
+    expect(lastUrl()).toBe("/skills?id=1");
+
+    const tooMany = Array.from({ length: 51 }, (_, i) => String(i));
+    await expect(handleGetSkills({ id: tooMany })).rejects.toThrow(/50/);
+    // zod also caps arrays at 50 when parsed via the schema
   });
 });
 
