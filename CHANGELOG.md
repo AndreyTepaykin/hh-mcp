@@ -5,6 +5,13 @@ All notable changes to this project are documented here. This project adheres to
 
 ## [Unreleased]
 
+### Fixed
+- **`get_skills`** now requires skill `id`(s) (1–50); bare `/skills` is invalid per hh.ru.
+- **`get_employer_vacancies`** uses public `/vacancies?employer_id=` instead of the
+  employer-only `/employers/{id}/vacancies/active` path.
+- HTTP mode is enabled only by `--http` (not by a bare `HTTP_PORT` env var).
+- In-process rate limiter serializes waiters so concurrent calls cannot exceed 5 req/s.
+
 ### Changed
 - Published as **`@andrey-tepaykin/hh-mcp`** (npm scope `andrey-tepaykin`).
 - **`get_salary_statistics`** tries paid Банк данных
