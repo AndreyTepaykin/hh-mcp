@@ -306,7 +306,8 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "get_employer_vacancies",
-    description: "List active vacancies for a specific employer.",
+    description:
+      "List active vacancies for a specific employer via public vacancy search (employer_id filter). No token required.",
     schema: getEmployerVacanciesSchema.shape,
     handler: handleGetEmployerVacancies,
   },
@@ -437,7 +438,8 @@ const TOOLS: ToolDef[] = [
   },
   {
     name: "get_skills",
-    description: "List skills dictionary from /skills.",
+    description:
+      "Resolve skill names by id via /skills (1–50 ids). Use suggest_skill_set to discover ids by name first.",
     schema: getSkillsSchema.shape,
     handler: handleGetSkills,
   },
@@ -568,7 +570,9 @@ function readJsonBody(req: http.IncomingMessage): Promise<unknown> {
 
 async function main() {
   const args = process.argv.slice(2);
-  const httpMode = args.includes("--http") || !!process.env.HTTP_PORT;
+  // Only `--http` enables HTTP mode. Do not key off HTTP_PORT alone — that
+  // variable often appears in copied .env files and would hijack stdio MCP hosts.
+  const httpMode = args.includes("--http");
   const port = Number(process.env.HTTP_PORT || process.env.PORT || 3000);
 
   if (httpMode) {
