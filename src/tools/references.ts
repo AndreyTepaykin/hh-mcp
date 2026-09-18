@@ -292,12 +292,28 @@ export async function handleGetLanguages(
   return formatIdNameList(result);
 }
 
-export const getSkillsSchema = rawOnly;
+export const getSkillsSchema = z.object({
+  id: z
+    .union([
+      z.string().min(1),
+      z.array(z.string().min(1)).min(1).max(50),
+    ])
+    .describe(
+      "Skill id(s) to resolve (1–50). hh.ru /skills requires ids — use suggest_skill_set to find them by name.",
+    ),
+  raw: rawFlag,
+});
 
 export async function handleGetSkills(
-  params: z.infer<typeof getSkillsSchema> = {},
+  params: z.infer<typeof getSkillsSchema>,
 ): Promise<string> {
-  const result = await hhGet("/skills");
+  const ids = Array.isArray(params.id) ? params.id : [params.id];
+  if (ids.length > 50) {
+    throw new Error("get_skills accepts at most 50 skill ids per request.");
+  }
+  const query = new URLSearchParams();
+  for (const id of ids) query.append("id", id);
+  const result = await hhGet(`/skills?${query.toString()}`);
   if (params.raw) return JSON.stringify(result, null, 2);
   return formatIdNameList(result);
 }
