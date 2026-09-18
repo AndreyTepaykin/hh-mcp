@@ -70,13 +70,15 @@ export const getEmployerVacanciesSchema = z.object({
 export async function handleGetEmployerVacancies(
   params: z.infer<typeof getEmployerVacanciesSchema>,
 ): Promise<string> {
+  // Public listing via vacancy search. The employer-management path
+  // `/employers/{id}/vacancies/active` requires an employer OAuth token and
+  // only works for the authenticated account — not for arbitrary employers.
   const query = new URLSearchParams();
+  query.set("employer_id", params.employer_id);
   query.set("per_page", String(params.per_page));
   query.set("page", String(params.page));
 
-  const result = await hhGet(
-    `/employers/${encodeURIComponent(params.employer_id)}/vacancies/active?${query.toString()}`,
-  );
+  const result = await hhGet(`/vacancies?${query.toString()}`);
   if (params.raw) return JSON.stringify(result, null, 2);
   return formatVacancySearch(result as SearchResult<Vacancy>);
 }
